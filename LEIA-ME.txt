@@ -1,0 +1,14 @@
+Rumo à Perfeição — versão instalável (PWA)
+
+COMO COLOCAR NO AR (grátis, 2 minutos):
+1. No computador, abra https://app.netlify.com/drop
+2. Arraste esta pasta inteira (rumo-a-perfeicao-pwa) para a página.
+3. O Netlify gera um link https. Abra esse link no celular.
+
+COMO INSTALAR NO CELULAR:
+- Android (Chrome): menu ⋮ > "Instalar app" ou "Adicionar à tela inicial".
+- iPhone (Safari): botão Compartilhar > "Adicionar à Tela de Início".
+
+O app funciona sem internet depois de aberto uma vez. O progresso fica salvo no aparelho;
+use Backup (toque em "App instalado" no topo) para levar para outro aparelho.
+Obs.: abrir o index.html direto do arquivo não instala; precisa estar num link https.
