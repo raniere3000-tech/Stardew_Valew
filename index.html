@@ -983,6 +983,7 @@ async function cloudInit(){
   await openFarm(CL.meta.farms.some(f=>f.id===CL.meta.cur)?CL.meta.cur:CL.meta.farms[0].id);
 }
 let EDIT="",DEL="";
+const BKHTML=`<div class="sec"><h3>Backup</h3><p class="muted" style="margin:0 0 6px">Baixe o que você preencheu para restaurar no app instalado ou em outro aparelho.</p><div class="farm"><button class="btn main" id="bkDown">Baixar backup</button><label class="btn" style="text-align:center">Restaurar<input type="file" id="bkUp" accept="application/json,.json" hidden></label></div><p class="muted" id="bkMsg" style="margin:6px 0 0" role="status"></p></div>`;
 const IS_APP=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 function acctSheet(){
   const farms=CL.meta?CL.meta.farms:[];
@@ -991,15 +992,22 @@ function acctSheet(){
     ${farms.map(f=>EDIT===f.id?`<div class="ing farm"><input id="renInp" maxlength="40" value="${esc(f.name)}" aria-label="Nome da fazenda"><button class="btn main" data-rensave="${f.id}" style="min-height:36px;padding:4px 10px">Salvar</button></div>`
       :`<div class="ing" style="${f.id===CL.farm?"background:#d9edb8":""}"><button class="n" data-farm="${f.id}" style="background:none;border:0;text-align:left;cursor:pointer;padding:0">${esc(f.name)}<small>${f.id===CL.farm?"em uso agora":"toque para abrir"}</small></button><button class="btn" data-ren="${f.id}" style="min-height:36px;padding:4px 10px">Renomear</button>${farms.length>1?`<button class="btn" data-del="${f.id}" style="min-height:36px;padding:4px 10px;${DEL===f.id?"background:var(--red);color:#fff":""}">${DEL===f.id?"Confirmar":"Excluir"}</button>`:""}</div>`).join("")}
     ${DEL?`<p class="muted" style="margin:6px 0 0;color:var(--red)">Toque em "Confirmar" para apagar essa fazenda e todo o progresso dela.</p>`:""}
-    <div class="farm" style="margin-top:8px"><input id="newFarm" maxlength="40" placeholder="Nome da nova fazenda"><button class="btn main" id="addFarm">Criar</button></div></div>`
+    <div class="farm" style="margin-top:8px"><input id="newFarm" maxlength="40" placeholder="Nome da nova fazenda"><button class="btn main" id="addFarm">Criar</button></div></div>${BKHTML}`
   :`<div class="shead"><div class="pic"><img alt="" src="sprites/ui2/chicken.png"></div><div><h2 id="stitle">${IS_APP?"App instalado":"Modo local"}</h2><div class="en">O progresso fica salvo neste aparelho.</div></div></div>
     <div class="sec"><p class="how" style="margin:0">${window.claude?"Para salvar na sua conta, abra esta página pelo link do Claude estando conectado. Cada jogador entra com a própria conta do Claude e tem o progresso separado.":"Para levar seu progresso para outro aparelho, baixe um backup aqui e restaure lá."}</p></div>
-    ${window.claude?"":`<div class="sec"><h3>Backup</h3><div class="farm"><button class="btn main" id="bkDown">Baixar backup</button><label class="btn" style="text-align:center">Restaurar<input type="file" id="bkUp" accept="application/json,.json" hidden></label></div><p class="muted" id="bkMsg" style="margin:6px 0 0"></p></div>`}`;
+    ${BKHTML}`;
   sheet.innerHTML=fx(fx(`<div class="sbody">${body}</div><div class="sfoot" style="grid-template-columns:1fr"><button class="btn" id="sClose">Fechar</button></div>`));
   ov.hidden=false;SH.type="";
   document.getElementById("sClose").onclick=closeSheet;
   const bd=document.getElementById("bkDown");
-  if(bd)bd.onclick=()=>{const blob=new Blob([JSON.stringify(Object.assign(serial(),{app:"rumo-a-perfeicao",v:1,salvo:new Date().toISOString()}))],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="stardew-perfeicao-backup.json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);sfx("on")};
+  if(bd)bd.onclick=async()=>{
+    const m=document.getElementById("bkMsg");
+    const name=(CL.uid&&CL.meta?(CL.meta.farms.find(f=>f.id===CL.farm)||{}).name:"")||"fazenda";
+    const filename="perfeicao-"+norm(name).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+".json";
+    const data=JSON.stringify(Object.assign(serial(),{app:"rumo-a-perfeicao",v:1,fazenda:name,salvo:new Date().toISOString()}));
+    const dl=window.claude&&claude.use?await claude.use("downloads"):null;
+    if(dl){try{await dl.save({filename,data});m.textContent="Backup salvo. Abra o app e toque em Restaurar.";sfx("on")}catch(e){m.textContent=e&&e.code==="declined"?"Download cancelado.":"Não foi possível baixar aqui."}return}
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);m.textContent="Backup baixado.";sfx("on")};
   const bu=document.getElementById("bkUp");
   if(bu)bu.onchange=async()=>{const m=document.getElementById("bkMsg");try{const o=JSON.parse(await bu.files[0].text());if(o.app!=="rumo-a-perfeicao")throw 0;applyState(o);save();render();sfx("on");m.textContent="Backup restaurado."}catch(e){m.textContent="Esse arquivo não é um backup válido."}};
   sheet.querySelectorAll("[data-farm]").forEach(b=>b.onclick=async()=>{sfx("tick");await openFarm(b.dataset.farm);acctSheet()});
